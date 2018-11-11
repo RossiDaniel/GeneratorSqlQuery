@@ -1,23 +1,9 @@
-#!/usr/bin/env python
-
-import pandas as pd
+#!/usr/bin/envimport pandas as pd
 import random
 import string
 from datetime import datetime
-
-
-
-def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
-
-
-
-def random_date():
-    year = random.randint(1990, 2017)
-    month = random.randint(1, 12)
-    day = random.randint(1, 28)
-    return datetime(year, month, day)
-
+from interface import implements, Interface
+from enum import Enum
 
 def upsert(table, name,values):
     keys = ['%s' % k for k in name]
@@ -30,62 +16,75 @@ def upsert(table, name,values):
     sql.append(");")
     return "".join(sql)
 
+class Generator(Interface):
 
-values = []
-for i in range(1000):
+    def generate(self):
+        pass
 
-    values.append([
-    random.randint(1,10),
-    id_generator(6),
-    id_generator(6),
-    random.randint(1,10),
-    random_date().strftime('%Y-%m-%d'),
-    random.randint(1,10),
-    random.randint(1,10),
-    random.randint(1,10),
-    random.randint(1,10),
-    id_generator(6),
-    id_generator(6),
-    random.randint(1,10),
-    random.randint(1,10),
-    random.randint(1,10),
-    id_generator(6),
-    random.randint(1,10),
-    id_generator(6),
-    random.randint(1,10),
-    random.randint(1,10),
-    random_date().strftime('%Y-%m-%d'),
-    random_date().strftime('%Y-%m-%d')])
+    def clone(self):
+        pass
 
-name= ['Category',
-'Make',
-'Model',
-'YearModel',
-'DateMatriculation',
-'NumDoors',
-'Numseats',
-'ExternalColor',
-'InternalColor',
-'InternalMaterials',
-'FuelType',
-'EngineCylinder',
-'HorsePower',
-'EmissionClass',
-'Transmission',
-'Gears',
-'Traction',
-'Mileage',
-'NumOwners',
-'DateLastCheckup',
-'DateNextRevision']
+class IntGenerator(implements(Generator)):
+    def __init__(self,sta=0,sto=100):
+        self.start=sta
+        self.stop=sto
+    def generate(self):
+        return random.randint(self.start,self.stop)
+    def clone(self):
+        return IntGenerator()
 
-file = open("query.txt","w") 
-for v in values:
-    q =(upsert("Vehicle",name,v))
-    file.write(str(q)+'\n')
-file.close() 
+class DataGenerator(implements(Generator)):
+    def __init__(self,sta=1980,sto=2018):
+        self.start=sta
+        self.stop=sto
+    def generate(self):
+        year = random.randint(self.start, self.stop)
+        month = random.randint(1, 12)
+        day = random.randint(1, 28)
+        return str(datetime(year, month, day))    
+    def clone(self):
+        return DataGenerator()
 
+class StringGenerator(implements(Generator)):
+    def __init__(self,sz=6):
+        self.uc=string.ascii_uppercase
+        self.lc=string.ascii_lowercase
+        self.size=sz
+    def generate(self):
+        return ''.join(random.choice(self.uc + self.lc) for _ in range(self.size))
+    def clone(self):
+        return StringGenerator()
 
+class Attr:
+    def __init__(self,nm,gn,pr):
+        self.name=nm
+        self.generator=gn
+        self.primaryKey=pr
+    def generate(self):
+        return self.generator.generate()
+    
+class Type(Enum):
+    VARCHAR = StringGenerator()
+    INT = IntGenerator()
+    DATE = DataGenerator()
 
-
-
+class Table:
+    def __init__(self,nm):
+        self.name = nm
+        self.attr = []
+    def addAttribute(self,nm,gn,pr=False):
+        for at in self.attr:
+            if at.name == nm: raise ValueError('Non puoi inserire attributi con lo stesso nome')
+        gen=gn.value.clone()
+        self.attr.append(Attr(nm,gen,pr))
+        return gen
+    def generate(self,n=10):
+        self.name = [i.name for i in self.attr]
+        self.value = [[i.generate() for i in self.attr] for _ in range(n)]
+    def write(self,name='query'):
+        if len(self.value) == 0: raise ValueError('Devi prima richiamare il metodo generate')
+        file = open(str(name)+".txt","w")
+        for v in self.value: 
+            q =(upsert("Vehicle",self.name,v))
+            file.write(str(q)+'\n')
+        file.close()
