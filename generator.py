@@ -82,6 +82,8 @@ class Attr:
         self.primaryKey=pr
     def generate(self):
         return self.generator.generate()
+    def __eq__(self,other):
+        return self.name == other.name
     
 class Type(Enum):
     VARCHAR = StringGenerator()
@@ -97,16 +99,35 @@ class Table:
     def addAttribute(self,nm,gn,pr=False):
         for at in self.attr:
             if at.name == nm: raise ValueError('Non puoi inserire attributi con lo stesso nome')
-        gen=gn.value.clone()
+        gen = gn.value.clone()
         self.attr.append(Attr(nm,gen,pr))
         return gen
+
     def generate(self,n=10):
-        self.name = [i.name for i in self.attr]
-        self.value = [[i.generate() for i in self.attr] for _ in range(n)]
+        self.name_value = [i.name for i in self.attr]
+        self.attr_value = []
+        pr = []
+        for i in range(n):
+            c = 1
+            value = []
+            counter = 0
+            while c != 0: 
+                if counter >= 10 : raise ValueError('Non ci sono abbastanza valori per formare le PR per il numero di righe richieste')
+                value = [j.generate() for j in self.attr]
+                temp = []
+                for j in range(len(self.attr)):
+                    if self.attr[j].primaryKey == True:
+                        temp.append(value[j])
+                if(len(temp) == 0): c=0
+                else: c = sum([j == temp for j in pr])
+                counter=counter+1
+            self.attr_value.append(value)
+            pr.append(temp)
+
     def write(self,name='query'):
-        if len(self.value) == 0: raise ValueError('Devi prima richiamare il metodo generate')
+        if len(self.attr_value) == 0: raise ValueError('Devi prima richiamare il metodo generate')
         file = open(str(name)+".txt","w")
-        for v in self.value: 
-            q =(upsert("Vehicle",self.name,v))
+        for v in self.attr_value: 
+            q =(upsert(self.name,self.name_value,v))
             file.write(str(q)+'\n')
         file.close()
