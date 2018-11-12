@@ -1,9 +1,9 @@
-#!/usr/bin/envimport pandas as pd
 import random
 import string
 from datetime import datetime
 from interface import implements, Interface
 from enum import Enum
+import names
 
 def upsert(table, name,values):
     keys = ['%s' % k for k in name]
@@ -28,10 +28,30 @@ class IntGenerator(implements(Generator)):
     def __init__(self,sta=0,sto=100):
         self.start=sta
         self.stop=sto
+    def changeBound(self,sta,sto):
+	if sto < sta : raise ValueError('il primo valore deve essere minore del secondo')
+        self.start=sta
+        self.stop=sto	
     def generate(self):
         return random.randint(self.start,self.stop)
     def clone(self):
         return IntGenerator()
+
+class NameGenerator(implements(Generator)):
+    def __init__(self, nm = []):
+	self.name = nm
+    def generate(self):
+        if len(self.name) == 0: return names.get_first_name()
+    def clone(self):
+        return NameGenerator()
+
+class SurnameGenerator(implements(Generator)):
+    def __init__(self, nm = []):
+	self.name = nm
+    def generate(self):
+        if len(self.name) == 0: return names.get_last_name()
+    def clone(self):
+        return SurnameGenerator()
 
 class DataGenerator(implements(Generator)):
     def __init__(self,sta=1980,sto=2018):
@@ -67,6 +87,8 @@ class Type(Enum):
     VARCHAR = StringGenerator()
     INT = IntGenerator()
     DATE = DataGenerator()
+    NAME = NameGenerator()
+    SURNAME = SurnameGenerator()
 
 class Table:
     def __init__(self,nm):
