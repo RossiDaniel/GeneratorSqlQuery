@@ -69,11 +69,45 @@ class StringGenerator(implements(Generator)):
     def __init__(self,sz=6):
         self.uc=string.ascii_uppercase
         self.lc=string.ascii_lowercase
+        self.num='0123456789'
         self.size=sz
     def generate(self):
         return ''.join(random.choice(self.uc + self.lc) for _ in range(self.size))
     def clone(self):
         return StringGenerator()
+
+class CodiceFiscaleGenerator(implements(Generator)):
+    def __init__(self):
+        self.uc=string.ascii_uppercase
+        self.num='0123456789'
+    def generate(self):
+        p1= ''.join(random.choice(self.uc) for _ in range(6))
+        p2= ''.join(random.choice(self.num) for _ in range(2))
+        p3= ''.join(random.choice(self.uc))
+        p4= ''.join(random.choice(self.num) for _ in range(2))
+        p5= ''.join(random.choice(self.uc))
+        p6= ''.join(random.choice(self.num) for _ in range(3))
+        p7= ''.join(random.choice(self.uc))
+        return p1+p2+p3+p4+p5+p6+p7
+    def clone(self):
+        return CodiceFiscaleGenerator()
+
+class ArrayGenerator(implements(Generator)):
+    def __init__(self):
+        self.l=[]
+        self.pre=''
+    def addElements(self,elements):
+        self.l+=elements
+    def resetElements(self):
+        self.l=[]
+    def addPre(self,p):
+        self.pre=p
+    def generate(self):
+        if len(self.l) == 0: raise ValueError('Lista vuota')
+        return self.pre+str(random.choice(self.l))
+    def clone(self):
+        return ArrayGenerator()
+
 
 class Attr:
     def __init__(self,nm,gn,pr):
@@ -91,8 +125,10 @@ class Type(Enum):
     DATE = DataGenerator()
     NAME = NameGenerator()
     SURNAME = SurnameGenerator()
+    CODICEFISCALE = CodiceFiscaleGenerator()
+    ARRAY = ArrayGenerator()
 
-class Table:
+class Table: 
     def __init__(self,nm):
         self.name = nm
         self.attr = []
